@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель студента</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+    body { background-color: #f8f9fa; }
+    .sidebar { background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .nav-link.active { background-color: #0d6efd; color: white !important; }
+    .lesson-card { 
+        border-left: 4px solid #0d6efd;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    }
+    .lesson-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+    }
+    .card-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        border-bottom: none;
+    }
+    .badge.bg-secondary {
+        background-color: #6c757d !important;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 1px solid #e0e0e0;
+    }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link text-white">
+                    <i class="bi bi-person-circle"></i> {{ full_name }}
+                    {% if session.get('group_name') %}
+                    <small>({{ session.get('group_name') }})</small>
+                    {% endif %}
+                </span>
+                <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню -->
+            <div class="col-md-3">
+                <div class="sidebar p-3 mb-4">
+                    <h5 class="mb-3"><i class="bi bi-menu-button"></i> Меню студента</h5>
+                    <div class="list-group">
+                        <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action active">
+                            <i class="bi bi-speedometer2"></i> Панель
+                        </a>
+                        <a href="{{ url_for('student_schedule') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-calendar-week"></i> Расписание
+                        </a>
+                        <a href="{{ url_for('student_attendance') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-clipboard-check"></i> Посещаемость
+                        </a>
+                        <a href="{{ url_for('student_disciplines') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-book"></i> Дисциплины
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Статистика -->
+                <div class="card stat-card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-bar-chart"></i> Статистика (30 дней)
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Всего занятий:</span>
+                            <strong>{{ stats[0] if stats else 0 }}</strong>
+                        </div>
+                        
+                        <!-- Прогресс-бар посещаемости -->
+                        {% if stats and stats[0] > 0 %}
+                        {% set attendance_rate = ((stats[1] / stats[0]) * 100)|round(1) %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Уровень посещаемости</small>
+                                <small class="text-success"><strong>{{ attendance_rate }}%</strong></small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: {{ attendance_rate }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-success">
+                                <i class="bi bi-check-circle"></i> Присутствовал:
+                            </span>
+                            <strong class="text-success">{{ stats[1] if stats else 0 }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-danger">
+                                <i class="bi bi-x-circle"></i> Отсутствовал:
+                            </span>
+                            <strong class="text-danger">{{ stats[2] if stats else 0 }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-warning">
+                                <i class="bi bi-exclamation-circle"></i> По уважительной:
+                            </span>
+                            <strong class="text-warning">{{ stats[3] if stats else 0 }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-info">
+                                <i class="bi bi-clock"></i> Опоздал:
+                            </span>
+                            <strong class="text-info">{{ stats[4] if stats and stats|length > 4 else 0 }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-calendar-day"></i> Расписание на сегодня</h3>
+                    <span class="badge bg-primary">{{ today_date.strftime('%d.%m.%Y') }}</span>
+                </div>
+
+                {% if today_schedule %}
+                    <div class="row">
+                        {% for lesson in today_schedule %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card lesson-card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <strong>{{ lesson[1] }}</strong>
+                                    <span class="badge bg-secondary">{{ lesson[4] }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-2"><i class="bi bi-clock"></i> <strong>{{ lesson[2] }}</strong></p>
+                                    <p class="mb-2"><i class="bi bi-geo-alt"></i> Аудитория: {{ lesson[3] }}</p>
+                                    <p class="mb-0"><i class="bi bi-person"></i> Преподаватель: {{ lesson[5] }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> На сегодня занятий нет
+                    </div>
+                {% endif %}
+
+                <h3 class="mt-5 mb-3"><i class="bi bi-book"></i> Ваши дисциплины</h3>
+                {% if disciplines %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Дисциплина</th>
+                                    <th>Часов всего</th>
+                                    <th>Семестр</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for disc in disciplines %}
+                                <tr>
+                                    <td>{{ disc[0] }}</td>
+                                    <td><span class="badge bg-primary">{{ disc[1] }}</span></td>
+                                    <td>{{ disc[2] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Дисциплины не назначены
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

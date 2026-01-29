@@ -1,0 +1,96 @@
+DROP TABLE IF EXISTS attendance CASCADE;
+DROP TABLE IF EXISTS schedule CASCADE;
+DROP TABLE IF EXISTS group_disciplines CASCADE;
+DROP TABLE IF EXISTS disciplines CASCADE;
+DROP TABLE IF EXISTS student_groups CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+CREATE TABLE users(
+    id BIGSERIAL PRIMARY KEY,
+    login TEXT NOT NULL UNIQUE CHECK (char_length(login) >= 3),
+    password_hash TEXT NOT NULL CHECK (char_length(password_hash) >= 3),
+    full_name TEXT NOT NULL CHECK (char_length(full_name) >= 2),
+    role TEXT NOT NULL CHECK (role IN ('Студент', 'Преподаватель', 'Администратор')),
+    email TEXT,
+    phone TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE student_groups(
+    id BIGSERIAL PRIMARY KEY,
+    group_code TEXT NOT NULL UNIQUE,
+    specialization TEXT,
+    year_of_study INTEGER CHECK (year_of_study >= 1 AND year_of_study <= 6),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Обновляем таблицу users, чтобы добавить ссылку на группу для студентов
+ALTER TABLE users ADD COLUMN IF NOT EXISTS group_id BIGINT REFERENCES student_groups(id) ON DELETE SET NULL;
+
+CREATE TABLE disciplines(
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    total_hours INTEGER NOT NULL CHECK (total_hours > 0),
+    teacher_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE group_disciplines(
+    id BIGSERIAL PRIMARY KEY,
+    group_id BIGINT NOT NULL REFERENCES student_groups(id) ON DELETE CASCADE,
+    discipline_id BIGINT NOT NULL REFERENCES disciplines(id) ON DELETE CASCADE,
+    semester INTEGER CHECK (semester >= 1 AND semester <= 12),
+    UNIQUE(group_id, discipline_id)
+);
+
+CREATE TABLE schedule(
+    id BIGSERIAL PRIMARY KEY,
+    discipline_id BIGINT NOT NULL REFERENCES disciplines(id) ON DELETE CASCADE,
+    group_id BIGINT NOT NULL REFERENCES student_groups(id) ON DELETE CASCADE,
+    teacher_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lesson_date DATE NOT NULL,
+    lesson_time TIME NOT NULL,
+    classroom TEXT,
+    lesson_type TEXT CHECK (lesson_type IN ('Лекция', 'Практика', 'Лабораторная', 'Семинар')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE attendance(
+    id BIGSERIAL PRIMARY KEY,
+    student_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    schedule_id BIGINT NOT NULL REFERENCES schedule(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('Присутствовал', 'Отсутствовал', 'По уважительной причине', 'Опоздал')),
+    notes TEXT,
+    marked_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, schedule_id)
+);
+
+-- Индексы для оптимизации запросов
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_group ON users(group_id);
+CREATE INDEX idx_disciplines_teacher ON disciplines(teacher_id);
+CREATE INDEX idx_schedule_date ON schedule(lesson_date);
+CREATE INDEX idx_schedule_group_date ON schedule(group_id, lesson_date);
+CREATE INDEX idx_attendance_student_date ON attendance(student_id, marked_at);
+CREATE INDEX idx_attendance_schedule ON attendance(schedule_id);
+
+-- Тестовые данные
+INSERT INTO student_groups (group_code, specialization, year_of_study) VALUES
+('ИВТ-101', 'Информатика и вычислительная техника', 1),
+('ИВТ-201', 'Информатика и вычислительная техника', 2),
+('ПИ-101', 'Прикладная информатика', 1);
+
+-- Администратор по умолчанию
+INSERT INTO users (login, password_hash, full_name, role, email) VALUES
+('admin', 'admin123', 'Администратор Системы', 'Администратор', 'admin@university.ru'),
+('teacher1', 'teacher123', 'Иванова Мария Петровна', 'Преподаватель', 'ivanova@university.ru'),
+('teacher2', 'teacher123', 'Петров Алексей Сергеевич', 'Преподаватель', 'petrov@university.ru');
+
+-- Тестовые студенты
+INSERT INTO users (login, password_hash, full_name, role, email, group_id) VALUES
+('student1', 'student123', 'Сидоров Иван Алексеевич', 'Студент', 'sidorov@university.ru', 1),
+('student2', 'student123', 'Козлова Анна Сергеевна', 'Студент', 'kozlova@university.ru', 1),
+('student3', 'student123', 'Михайлов Дмитрий Петрович', 'Студент', 'mikhaylov@university.ru', 2),
+('student4', 'student123', 'Смирнова Елена Владимировна', 'Студент', 'smirnova@university.ru', 2);

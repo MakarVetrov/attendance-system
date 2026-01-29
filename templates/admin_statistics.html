@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Статистика системы</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        /* Существующие стили */
+        .stat-card { border-radius: 10px; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .progress-thin { height: 10px; }
+        .attendance-badge {
+            font-size: 0.9rem;
+            padding: 5px 10px;
+        }
+        /* Стили для боковой панели */
+        body { background-color: #f8f9fa; }
+        .sidebar-menu { 
+            position: sticky; 
+            top: 20px; 
+        }
+        .list-group-item.active { 
+            background-color: #dc3545 !important; 
+            color: white !important; 
+        }
+        .quick-actions-card .card-header {
+            background: linear-gradient(#ffc107);
+        }
+        .quick-actions-card .btn-view-statistics {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        .quick-actions-card .btn-view-statistics:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .system-info-card .card-header {
+            background: linear-gradient(135deg, #6c757d 0%, #6c757d 100%);
+        }
+        
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link text-white">
+                    <i class="bi bi-person-circle"></i> {{ session['full_name'] }}
+                </span>
+                <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню -->
+            <div class="col-md-3">
+                <!-- Блок администрирования -->
+                <div class="card mb-4 sidebar-menu">
+                    <div class="card-header bg-danger text-white">
+                        <i class="bi bi-menu-button"></i> Администрирование
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-speedometer2"></i> Панель управления
+                        </a>
+                        <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-people"></i> Пользователи
+                        </a>
+                        <a href="{{ url_for('admin_groups') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-collection"></i> Группы
+                        </a>
+                        <a href="{{ url_for('admin_schedule') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-calendar-week"></i> Расписание
+                        </a>
+                        <a href="{{ url_for('admin_statistics') }}" class="list-group-item list-group-item-action active">
+                            <i class="bi bi-bar-chart"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="card quick-actions-card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-lightning"></i> Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <!-- Просмотр статистики -->
+                        <a href="{{ url_for('admin_statistics') }}" class="btn btn-view-statistics btn-sm w-100 mb-2">
+                            <i class="bi bi-graph-up"></i> Обновить статистику
+                        </a>
+                        
+                        <!-- Добавление в расписание -->
+                        <a href="{{ url_for('add_schedule') }}" class="btn btn-warning btn-sm w-100 mb-2">
+                            <i class="bi bi-calendar-plus"></i> Добавить в расписание
+                        </a>
+                        
+                        <!-- Просмотр пользователей -->
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-info btn-sm w-100 mb-2">
+                            <i class="bi bi-eye"></i> Просмотр пользователей
+                        </a>
+                        
+                        <!-- Просмотр групп -->
+                        <a href="{{ url_for('admin_groups') }}" class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-collection"></i> Просмотр групп
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Информация о системе -->
+                <div class="card mt-4 system-info-card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="bi bi-info-circle"></i> Информация о системе
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <div class="mb-1"><strong>Роль:</strong> Администратор</div>
+                            <div class="mb-1"><strong>Вход:</strong> {{ session['login'] }}</div>
+                            <div><strong>Время:</strong> {{ current_time if current_time else '' }}</div>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <h2><i class="bi bi-bar-chart"></i> Статистика системы</h2>
+                
+                <!-- Общая статистика -->
+                <div class="row mb-4">
+                    <div class="col-md-2 mb-3">
+                        <div class="card stat-card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-6">{{ stats[0] }}</h1>
+                                <p class="mb-0"><i class="bi bi-people"></i> Студентов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="card stat-card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-6">{{ stats[1] }}</h1>
+                                <p class="mb-0"><i class="bi bi-person"></i> Преподава-<br>телей</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="card stat-card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-6">{{ stats[2] }}</h1>
+                                <p class="mb-0"><i class="bi bi-collection"></i> Групп</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="card stat-card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h1 class="display-6">{{ stats[3] }}</h1>
+                                <p class="mb-0"><i class="bi bi-book"></i> Дисциплин</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="card stat-card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-6">{{ stats[4] }}</h1>
+                                <p class="mb-0"><i class="bi bi-calendar"></i> Занятий<br><small>(7 дней)</small></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="card stat-card bg-dark text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-6">{{ stats[5] }}</h1>
+                                <p class="mb-0"><i class="bi bi-check-circle"></i> Отметок<br><small>(7 дней)</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Статистика посещаемости -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-clipboard-check"></i> Статистика посещаемости (30 дней)
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <h3 class="text-success">{{ attendance_stats[0] }}%</h3>
+                                <p class="text-muted">Присутствовали</p>
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar bg-success" style="width: {{ attendance_stats[0] }}%"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h3 class="text-danger">{{ attendance_stats[1] }}%</h3>
+                                <p class="text-muted">Отсутствовали</p>
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar bg-danger" style="width: {{ attendance_stats[1] }}%"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h3 class="text-warning">{{ attendance_stats[2] }}%</h3>
+                                <p class="text-muted">По уважительной</p>
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar bg-warning" style="width: {{ attendance_stats[2] }}%"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h3 class="text-info">{{ attendance_stats[3] }}%</h3>
+                                <p class="text-muted">Опоздали</p>
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar bg-info" style="width: {{ attendance_stats[3] }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <!-- Топ групп по посещаемости -->
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-trophy"></i> Топ групп по посещаемости
+                            </div>
+                            <div class="card-body">
+                                {% if top_groups %}
+                                    {% for group in top_groups %}
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>{{ group[0] }}</span>
+                                        <span class="badge bg-primary attendance-badge">{{ group[2] }}%</span>
+                                    </div>
+                                    <div class="progress mb-3 progress-thin">
+                                        <div class="progress-bar" style="width: {{ group[2] }}%"></div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted text-center py-3">Нет данных о посещаемости</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- Сводка по статусам -->
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-list-check"></i> Сводка по статусам
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-success">
+                                        <i class="bi bi-check-circle"></i> Присутствовали
+                                    </span>
+                                    <strong class="text-success">{{ attendance_stats[0] }}%</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-danger">
+                                        <i class="bi bi-x-circle"></i> Отсутствовали
+                                    </span>
+                                    <strong class="text-danger">{{ attendance_stats[1] }}%</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-warning">
+                                        <i class="bi bi-exclamation-circle"></i> Уважительная
+                                    </span>
+                                    <strong class="text-warning">{{ attendance_stats[2] }}%</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-info">
+                                        <i class="bi bi-clock"></i> Опоздали
+                                    </span>
+                                    <strong class="text-info">{{ attendance_stats[3] }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Последние отметки посещаемости -->
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-clock-history"></i> Последние отметки посещаемости
+                    </div>
+                    <div class="card-body">
+                        {% if recent_attendance %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Студент</th>
+                                            <th>Группа</th>
+                                            <th>Дисциплина</th>
+                                            <th>Статус</th>
+                                            <th>Время</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in recent_attendance %}
+                                        <tr>
+                                            <td>{{ record[1] }}</td>
+                                            <td><span class="badge bg-secondary">{{ record[5] }}</span></td>
+                                            <td>{{ record[2] }}</td>
+                                            <td>
+                                                {% if record[3] == 'Присутствовал' %}
+                                                    <span class="badge bg-success">Присутствовал</span>
+                                                {% elif record[3] == 'Отсутствовал' %}
+                                                    <span class="badge bg-danger">Отсутствовал</span>
+                                                {% elif record[3] == 'По уважительной причине' %}
+                                                    <span class="badge bg-warning">Уважительная</span>
+                                                {% elif record[3] == 'Опоздал' %}
+                                                    <span class="badge bg-info">Опоздал</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ record[3] }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ record[4].strftime('%H:%M %d.%m.%Y') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">Нет данных о посещаемости</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

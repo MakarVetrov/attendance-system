@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Статистика посещаемости</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        /* Существующие стили */
+        .stat-table th { 
+            background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+            color: white;
+        }
+        .percentage { 
+            font-size: 0.9em; 
+            color: #6c757d;
+        }
+        .progress-bar-present {
+            background: linear-gradient(90deg, #198754 0%, #20c997 100%);
+        }
+        .progress-bar-absent {
+            background: linear-gradient(90deg, #dc3545 0%, #e35d6a 100%);
+        }
+        .progress-bar-excused {
+            background: linear-gradient(90deg, #ffc107 0%, #ffda6a 100%);
+        }
+        .progress-bar-late {
+            background: linear-gradient(90deg, #17a2b8 0%, #5bc0de 100%);
+        }
+        .text-present { color: #198754; }
+        .text-absent { color: #dc3545; }
+        .text-excused { color: #ffc107; }
+        .text-late { color: #17a2b8; }
+        
+        /* Стили для боковой панели */
+        body { background-color: #f8f9fa; }
+        .sidebar-teacher {
+            border-left: 4px solid #20c997;
+        }
+        .list-group-item.active {
+            background-color: #198754 !important;
+            border-color: #20533c !important;
+        }
+        .quick-actions-card .card-header {
+            background: linear-gradient(135deg, #3c9958 0%, #0d663d 100%);
+        }
+        .quick-actions-card .btn-add-discipline {
+            background-color: #20c997;
+            border-color: #20c997;
+            color: white;
+        }
+        .quick-actions-card .btn-add-discipline:hover {
+            background-color: #17a589;
+            border-color: #148f77;
+        }
+        .quick-actions-card .btn-mark-attendance {
+            background-color: #198754;
+            border-color: #198754;
+            color: white;
+        }
+        .quick-actions-card .btn-mark-attendance:hover {
+            background-color: #157347;
+            border-color: #146c43;
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link text-white">
+                    <i class="bi bi-person-circle"></i> {{ session['full_name'] }}
+                </span>
+                <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню -->
+            <div class="col-md-3">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-menu-button"></i> Меню преподавателя
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-speedometer2"></i> Панель
+                        </a>
+                        <a href="{{ url_for('teacher_disciplines') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-book"></i> Мои дисциплины
+                        </a>
+                        <a href="{{ url_for('mark_attendance') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-clipboard-check"></i> Отметка посещаемости
+                        </a>
+                        <a href="{{ url_for('teacher_statistics') }}" class="list-group-item list-group-item-action active">
+                            <i class="bi bi-bar-chart"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="card quick-actions-card">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-lightning"></i> Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <a href="{{ url_for('add_discipline') }}" class="btn btn-add-discipline btn-sm w-100 mb-2">
+                            <i class="bi bi-plus-circle"></i> Добавить дисциплину
+                        </a>
+                        <a href="{{ url_for('mark_attendance') }}" class="btn btn-mark-attendance btn-sm w-100">
+                            <i class="bi bi-check-circle"></i> Отметить посещаемость
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <h2><i class="bi bi-bar-chart"></i> Статистика посещаемости</h2>
+                
+                <!-- Фильтр -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="GET" class="row g-3">
+                            <div class="col-md-3">
+                                <label>Группа</label>
+                                <select class="form-select" name="group_id">
+                                    <option value="">Все группы</option>
+                                    {% for group in groups %}
+                                    <option value="{{ group[0] }}" {% if selected_group == group[0]|string %}selected{% endif %}>
+                                        {{ group[1] }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                           <div class="col-md-3">
+                                <label>Студент</label>
+                                <select class="form-select" name="student_id">
+                                    <option value="">Все студенты</option>
+                                    {% for student in students %}
+                                    <option value="{{ student[0] }}" {% if selected_student == student[0]|string %}selected{% endif %}>
+                                        {{ student[1] }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label>Начальная дата</label>
+                                <input type="date" name="start_date" class="form-control" 
+                                       value="{{ start_date.strftime('%Y-%m-%d') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label>Конечная дата</label>
+                                <input type="date" name="end_date" class="form-control" 
+                                       value="{{ end_date.strftime('%Y-%m-%d') }}">
+                            </div>
+                            <div class="col-12 mt-2">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-filter"></i> Применить фильтр
+                                </button>
+                                <a href="{{ url_for('teacher_statistics') }}" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Сбросить
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if statistics %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover stat-table">
+                            <thead>
+                                <tr>
+                                    <th>Студент</th>
+                                    <th>Дисциплина</th>
+                                    <th>Всего занятий</th>
+                                    <th>Присутствовал</th>
+                                    <th>Отсутствовал</th>
+                                    <th>Уважительная</th>
+                                    <th>Опоздал</th>
+                                    <th>Посещаемость</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in statistics %}
+                                <tr>
+                                    <td><strong>{{ stat[0] }}</strong></td>
+                                    <td>{{ stat[1] }}</td>
+                                    <td>{{ stat[2] }}</td>
+                                    <td class="text-success">{{ stat[3] }}</td>
+                                    <td class="text-danger">{{ stat[4] }}</td>
+                                    <td class="text-warning">{{ stat[5] }}</td>
+                                    <td>{{ stat[6] }}</td>
+                                    <td>
+                                        {% if stat[2] > 0 %}
+                                            {% set attendance_rate = (stat[3] / stat[2] * 100)|round(1) %}
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar progress-bar-present" style="width: {{ attendance_rate }}%">
+                                                    {{ attendance_rate }}%
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Нет данных</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% elif selected_group or selected_student %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> По выбранным критериям данных не найдено
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Выберите критерии для отображения статистики
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

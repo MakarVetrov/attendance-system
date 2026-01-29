@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить дисциплину</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+    .border-danger {
+        border: 2px solid #dc3545 !important;
+        background-color: #fff5f5 !important;
+    }
+
+    .group-checkbox:checked + .form-check-label {
+        color: #198754 !important;
+        font-weight: bold !important;
+    }
+
+    .semester-input {
+        transition: all 0.3s ease;
+    }
+
+    .semester-input:focus {
+        border-color: #20c997;
+        box-shadow: 0 0 0 0.25rem rgba(32, 201, 151, 0.25);
+    }
+    .is-valid {
+    border-color: #198754 !important;
+    background-color: #d4edda !important;
+    }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+        background-color: #f8d7da !important;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+    }
+
+    .border {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    .btn-back-teacher {
+        background-color: #198754;
+        color: white;
+        border: 2px solid #198754;
+        font-weight: bold;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    .btn-back-teacher:hover {
+        background-color: #157347;
+        border-color: #146c43;
+        transform: scale(1.05);
+        color: white;
+    }
+    .btn-back-teacher {
+        background-color: #198754;
+        color: white;
+        border: 2px solid #198754;
+        font-weight: bold;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    .btn-back-teacher:hover {
+        background-color: #157347;
+        border-color: #146c43;
+        transform: scale(1.05);
+        color: white;
+    }
+    
+    /* ЦВЕТА ФОРМЫ */
+    .card-header {
+        background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    }
+    .form-control:focus {
+        border-color: #20c997;
+        box-shadow: 0 0 0 0.25rem rgba(32, 201, 151, 0.25);
+    }
+    .btn-success {
+        background-color: #198754;
+        border-color: #198754;
+    }
+    .btn-success:hover {
+        background-color: #157347;
+        border-color: #146c43;
+    }
+    .border {
+        border-color: #c3e6cb !important;
+    }   
+</style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-success shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-back-teacher">
+                    <i class="bi bi-arrow-left-circle"></i> Назад в панель
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Добавить новую дисциплину</h4>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                <div class="alert alert-warning">
+                                    {% for message in messages %}
+                                        <div>{{ message }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Название дисциплины *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Общее количество часов *</label>
+                                <input type="number" class="form-control" name="total_hours" min="1" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Группы для дисциплины *</label>
+                                <div class="border p-3 bg-light">
+                                    {% if groups %}
+                                        {% for group in groups %}
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input group-checkbox" type="checkbox" 
+                                                name="groups" value="{{ group[0] }}" id="group{{ group[0] }}">
+                                            <label class="form-check-label" for="group{{ group[0] }}">
+                                                {{ group[1] }}
+                                            </label>
+                                            <input type="number" class="form-control form-control-sm mt-1 semester-input" 
+                                                name="semester_{{ group[0] }}" 
+                                                placeholder="Семестр (1-12)" 
+                                                min="1" max="12" 
+                                                style="width: 140px;"
+                                                data-group="{{ group[0] }}">
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="alert alert-warning">
+                                            <i class="bi bi-exclamation-triangle"></i> Нет доступных групп
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">Выберите одну или несколько групп, которые будут изучать эту дисциплину</small>
+                                <div class="text-muted mt-1">
+                                    <small><i class="bi bi-info-circle"></i> Для каждой выбранной группы укажите семестр (от 1 до 12)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-save"></i> Сохранить дисциплину
+                                </button>
+                                <a href="{{ url_for('teacher_disciplines') }}" class="btn btn-secondary">Отмена</a>
+                            </div>
+
+                            <div class="mt-4 text-center">
+                                <p class="text-muted">
+                                    После создания дисциплины вы сможете управлять группами через меню 
+                                    <i class="bi bi-people"></i> "Управление группами" в списке дисциплин
+                                </p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const checkboxes = document.querySelectorAll('.group-checkbox');
+        const semesterInputs = document.querySelectorAll('.semester-input');
+        const groupsContainer = document.querySelector('.border');
+        
+        // Динамически добавляем атрибут required только если группа выбрана
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const groupId = this.value;
+                const semesterInput = document.querySelector(`.semester-input[data-group="${groupId}"]`);
+                
+                if (this.checked) {
+                    semesterInput.style.display = 'block';
+                    semesterInput.required = true;
+                    // Добавляем стиль для выбранной группы
+                    const label = document.querySelector(`label[for="group${groupId}"]`);
+                    label.classList.add('text-success', 'fw-bold');
+                } else {
+                    semesterInput.style.display = 'none';
+                    semesterInput.required = false;
+                    semesterInput.value = '';
+                    // Убираем стиль
+                    const label = document.querySelector(`label[for="group${groupId}"]`);
+                    label.classList.remove('text-success', 'fw-bold');
+                }
+            });
+        });
+        
+        // Изначально скрываем все поля семестров
+        semesterInputs.forEach(input => {
+            input.style.display = 'none';
+            input.required = false;
+        });
+        
+        // Валидация формы при отправке
+        form.addEventListener('submit', function(event) {
+            let selectedGroups = [];
+            let allSemestersValid = true;
+            let errorMessages = [];
+            
+            // Собираем выбранные группы
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedGroups.push(checkbox.value);
+                }
+            });
+            
+            // Проверка 1: выбрана ли хотя бы одна группа
+            if (selectedGroups.length === 0) {
+                errorMessages.push('Пожалуйста, выберите хотя бы одну группу для дисциплины');
+                // Добавляем красную рамку ко всему блоку групп
+                groupsContainer.classList.add('border-danger');
+            } else {
+                groupsContainer.classList.remove('border-danger');
+            }
+            
+            // Проверка 2: корректность семестров для выбранных групп
+            selectedGroups.forEach(groupId => {
+                const semesterInput = document.querySelector(`.semester-input[data-group="${groupId}"]`);
+                const semesterValue = semesterInput.value.trim();
+                
+                if (!semesterValue) {
+                    errorMessages.push(`Для группы "${document.querySelector(`label[for="group${groupId}"]`).textContent.trim()}" не указан семестр`);
+                    semesterInput.classList.add('is-invalid');
+                    allSemestersValid = false;
+                } else if (parseInt(semesterValue) < 1 || parseInt(semesterValue) > 12) {
+                    errorMessages.push(`Для группы "${document.querySelector(`label[for="group${groupId}"]`).textContent.trim()}" указан некорректный семестр (должен быть от 1 до 12)`);
+                    semesterInput.classList.add('is-invalid');
+                    allSemestersValid = false;
+                } else {
+                    semesterInput.classList.remove('is-invalid');
+                    semesterInput.classList.add('is-valid');
+                }
+            });
+            
+            // Если есть ошибки, предотвращаем отправку и показываем их
+            if (errorMessages.length > 0) {
+                event.preventDefault();
+                
+                // Создаем красивый alert с ошибками
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger mt-3';
+                alertDiv.innerHTML = `
+                    <h5><i class="bi bi-exclamation-triangle"></i> Ошибки в форме:</h5>
+                    <ul class="mb-0">
+                        ${errorMessages.map(msg => `<li>${msg}</li>`).join('')}
+                    </ul>
+                `;
+                
+                // Удаляем предыдущие сообщения об ошибках
+                const existingAlert = document.querySelector('.alert-danger');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+                
+                // Вставляем новое сообщение перед формой
+                form.parentNode.insertBefore(alertDiv, form);
+                
+                // Прокручиваем к ошибкам
+                alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                return false;
+            }
+            
+            // Все проверки пройдены
+            return true;
+        });
+        
+        // Динамическая валидация семестров при вводе
+        semesterInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (value < 1 || value > 12) {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                } else {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                }
+            });
+        });
+        
+        // Валидация при потере фокуса
+        semesterInputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.value && this.required) {
+                    const value = parseInt(this.value);
+                    if (value < 1 || value > 12) {
+                        this.classList.add('is-invalid');
+                        this.classList.remove('is-valid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    }
+                }
+            });
+        });
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.required = false;
+        });
+    });
+</script>
+</body>
+</html>

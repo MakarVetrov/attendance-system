@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление группами</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        /* Существующие стили */
+        .group-card { transition: transform 0.2s; }
+        .group-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .student-count { font-size: 2rem; font-weight: bold; }
+        .specialization-badge { font-size: 0.75rem; }
+        .btn-add-floating {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-add-floating:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+        .btn-add-floating.hidden {
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+        
+        /* Стили для боковой панели */
+        body { background-color: #f8f9fa; }
+        .sidebar-menu { 
+            position: sticky; 
+            top: 20px; 
+        }
+        .list-group-item.active { 
+            background-color: #dc3545 !important; 
+            color: white !important; 
+        }
+        .quick-actions-card .card-header {
+            background: linear-gradient(#ffc107);
+        }
+        .quick-actions-card .btn-add-group {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        .quick-actions-card .btn-add-group:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .system-info-card .card-header {
+            background: linear-gradient(135deg, #6c757d 0%, #6c757d 100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link text-white">
+                    <i class="bi bi-person-circle"></i> {{ session['full_name'] }}
+                </span>
+                <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню -->
+            <div class="col-md-3">
+                <!-- Блок администрирования -->
+                <div class="card mb-4 sidebar-menu">
+                    <div class="card-header bg-danger text-white">
+                        <i class="bi bi-menu-button"></i> Администрирование
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-speedometer2"></i> Панель управления
+                        </a>
+                        <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-people"></i> Пользователи
+                        </a>
+                        <a href="{{ url_for('admin_groups') }}" class="list-group-item list-group-item-action active">
+                            <i class="bi bi-collection"></i> Группы
+                        </a>
+                        <a href="{{ url_for('admin_schedule') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-calendar-week"></i> Расписание
+                        </a>
+                        <a href="{{ url_for('admin_statistics') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-bar-chart"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="card quick-actions-card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-lightning"></i> Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <!-- Добавление группы -->
+                        <a href="{{ url_for('add_group') }}" class="btn btn-add-group btn-sm w-100 mb-2">
+                            <i class="bi bi-plus-circle"></i> Добавить группу
+                        </a>
+                        
+                        <!-- Добавление в расписание -->
+                        <a href="{{ url_for('add_schedule') }}" class="btn btn-warning btn-sm w-100 mb-2">
+                            <i class="bi bi-calendar-plus"></i> Добавить в расписание
+                        </a>
+                        
+                        <!-- Просмотр пользователей -->
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-info btn-sm w-100 mb-2">
+                            <i class="bi bi-eye"></i> Просмотр пользователей
+                        </a>
+                        
+                        <!-- Просмотр статистики -->
+                        <a href="{{ url_for('admin_statistics') }}" class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-graph-up"></i> Просмотр статистики
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Информация о системе -->
+                <div class="card mt-4 system-info-card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="bi bi-info-circle"></i> Информация о системе
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <div class="mb-1"><strong>Роль:</strong> Администратор</div>
+                            <div class="mb-1"><strong>Вход:</strong> {{ session['login'] }}</div>
+                            <div><strong>Время:</strong> {{ current_time if current_time else '' }}</div>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-collection"></i> Управление группами</h2>
+                </div>
+                
+                {% if groups %}
+                    <div class="row">
+                        {% for group in groups %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card group-card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+                                    <div>
+                                        <h5 class="mb-0">{{ group[1] }}</h5>
+                                        {% if group[2] %}
+                                        <small class="specialization-badge">{{ group[2] }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <span class="badge bg-light text-dark">{{ group[3] }} курс</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="me-3">
+                                            <i class="bi bi-people" style="font-size: 2rem; color: #6c757d;"></i>
+                                        </div>
+                                        <div>
+                                            <div class="student-count">{{ group[4] }}</div>
+                                            <div class="text-muted">студентов</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted">Специализация:</small>
+                                        <div>{{ group[2] or 'Не указана' }}</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted">Курс:</small>
+                                        <div>{{ group[3] }}</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted">Код группы:</small>
+                                        <div><code>{{ group[1] }}</code></div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent border-top">
+                                    <div class="d-flex justify-content-between">
+                                        <!-- Кнопка просмотра студентов группы -->
+                                        <a href="{{ url_for('admin_users') }}?role=Студент&group_id={{ group[0] }}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Просмотр студентов группы">
+                                            <i class="bi bi-people"></i> Студенты
+                                        </a>
+                                        
+                                        <!-- Кнопка просмотра расписания группы -->
+                                        <a href="{{ url_for('admin_schedule') }}?group_id={{ group[0] }}" 
+                                           class="btn btn-sm btn-outline-info" 
+                                           title="Расписание группы">
+                                            <i class="bi bi-calendar-week"></i> Расписание
+                                        </a>
+                                        
+                                        <!-- Кнопка просмотра дисциплин группы -->
+                                        <a href="{{ url_for('group_disciplines', group_id=group[0]) }}" 
+                                           class="btn btn-sm btn-outline-success" 
+                                           title="Дисциплины группы">
+                                            <i class="bi bi-book"></i> Дисциплины
+                                        </a>
+                                    </div>
+                                    
+                                    <!-- Кнопка управления группой -->
+                                    <div class="mt-2 text-center">
+                                        <a href="{{ url_for('edit_group', group_id=group[0]) }}" 
+                                           class="btn btn-sm btn-warning">
+                                            <i class="bi bi-gear"></i> Управление группой
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Общая статистика по группам -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-secondary text-white">
+                            <i class="bi bi-graph-up"></i> Общая статистика по группам
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-6 mb-3">
+                                    <div class="display-6 text-primary">{{ groups|length }}</div>
+                                    <div class="text-muted">Всего групп</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {% set total_students = groups|sum(attribute='4') %}
+                                    <div class="display-6 text-success">{{ total_students }}</div>
+                                    <div class="text-muted">Всего студентов</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-info-circle me-3" style="font-size: 2rem;"></i>
+                            <div>
+                                <h5 class="mb-1">Группы не найдены</h5>
+                                <p class="mb-0">В системе пока не создано ни одной учебной группы.</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Плавающая кнопка "Добавить группу" -->
+    <a href="{{ url_for('add_group') }}" 
+       class="btn btn-danger btn-add-floating"
+       id="addButton"
+       title="Добавить новую группу">
+        <i class="bi bi-plus" style="line-height: 0;"></i>
+    </a>
+
+    <script>
+        // Логика скрытия кнопки при скролле
+        let lastScrollTop = 0;
+        const addButton = document.getElementById('addButton');
+        const scrollThreshold = 100;
+        
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > scrollThreshold) {
+                addButton.classList.add('hidden');
+            } else {
+                addButton.classList.remove('hidden');
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.pageYOffset > scrollThreshold) {
+                addButton.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

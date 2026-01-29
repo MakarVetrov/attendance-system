@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление пользователями</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        /* Существующие стили */
+        .btn-add-floating {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-add-floating:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+        .btn-add-floating.hidden {
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+        .user-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #dc3545;
+        }
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Стили для боковой панели */
+        body { background-color: #f8f9fa; }
+        .sidebar-menu { 
+            position: sticky; 
+            top: 20px; 
+        }
+        .list-group-item.active { 
+            background-color: #dc3545 !important; 
+            color: white !important; 
+        }
+        .quick-actions-card .card-header {
+            background: linear-gradient(#ffc107);
+        }
+        .quick-actions-card .btn-add-user {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        .quick-actions-card .btn-add-user:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .system-info-card .card-header {
+            background: linear-gradient(135deg, #6c757d 0%, #6c757d 100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link text-white">
+                    <i class="bi bi-person-circle"></i> {{ session['full_name'] }}
+                </span>
+                <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню -->
+            <div class="col-md-3">
+                <!-- Блок администрирования -->
+                <div class="card mb-4 sidebar-menu">
+                    <div class="card-header bg-danger text-white">
+                        <i class="bi bi-menu-button"></i> Администрирование
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-speedometer2"></i> Панель управления
+                        </a>
+                        <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action active">
+                            <i class="bi bi-people"></i> Пользователи
+                        </a>
+                        <a href="{{ url_for('admin_groups') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-collection"></i> Группы
+                        </a>
+                        <a href="{{ url_for('admin_schedule') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-calendar-week"></i> Расписание
+                        </a>
+                        <a href="{{ url_for('admin_statistics') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-bar-chart"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="card quick-actions-card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-lightning"></i> Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <!-- Добавление пользователя -->
+                        <a href="{{ url_for('add_user') }}" class="btn btn-add-user btn-sm w-100 mb-2">
+                            <i class="bi bi-person-plus"></i> Добавить пользователя
+                        </a>
+                        
+                        <!-- Добавление в расписание -->
+                        <a href="{{ url_for('add_schedule') }}" class="btn btn-warning btn-sm w-100 mb-2">
+                            <i class="bi bi-calendar-plus"></i> Добавить в расписание
+                        </a>
+                        
+                        <!-- Просмотр расписания -->
+                        <a href="{{ url_for('admin_schedule') }}" class="btn btn-info btn-sm w-100 mb-2">
+                            <i class="bi bi-eye"></i> Просмотр расписания
+                        </a>
+                        
+                        <!-- Просмотр статистики -->
+                        <a href="{{ url_for('admin_statistics') }}" class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-graph-up"></i> Просмотр статистики
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Информация о системе -->
+                <div class="card mt-4 system-info-card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="bi bi-info-circle"></i> Информация о системе
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <div class="mb-1"><strong>Роль:</strong> Администратор</div>
+                            <div class="mb-1"><strong>Вход:</strong> {{ session['login'] }}</div>
+                            <div><strong>Время:</strong> {{ current_time if current_time else '' }}</div>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <h2><i class="bi bi-people"></i> Управление пользователями</h2>
+                <p class="text-muted">Пользователи системы</p>
+                
+                <!-- Фильтр по ролям и группам -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="GET" class="row g-3">
+                            <div class="col-md-4">
+                                <select class="form-select" name="role" onchange="this.form.submit()">
+                                    <option value="">Все роли</option>
+                                    <option value="Студент" {% if role_filter == 'Студент' %}selected{% endif %}>Студенты</option>
+                                    <option value="Преподаватель" {% if role_filter == 'Преподаватель' %}selected{% endif %}>Преподаватели</option>
+                                    <option value="Администратор" {% if role_filter == 'Администратор' %}selected{% endif %}>Администраторы</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" name="group_id" onchange="this.form.submit()">
+                                    <option value="">Все группы</option>
+                                    {% for group in all_groups %}
+                                    <option value="{{ group[0] }}" {% if group_filter == group[0]|string %}selected{% endif %}>
+                                        {{ group[1] }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" name="search" placeholder="Поиск по ФИО..." 
+                                       value="{{ search_query or '' }}">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if users %}
+                    <div class="row">
+                        {% for user in users %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card user-card h-100 position-relative">
+                                <div class="card-header 
+                                    {% if user[3] == 'Студент' %}bg-primary
+                                    {% elif user[3] == 'Преподаватель' %}bg-success
+                                    {% else %}bg-danger{% endif %} text-white">
+                                    <h5 class="mb-0">{{ user[2] }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted">Логин:</small>
+                                        <div><code>{{ user[1] }}</code></div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted">Роль:</small>
+                                        <div>
+                                            {% if user[3] == 'Студент' %}
+                                                <span class="badge bg-primary">Студент</span>
+                                            {% elif user[3] == 'Преподаватель' %}
+                                                <span class="badge bg-success">Преподаватель</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Администратор</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if user[3] == 'Студент' and user[6] %}
+                                    <div class="mb-3">
+                                        <small class="text-muted">Группа:</small>
+                                        <div><span class="badge bg-secondary">{{ user[6] }}</span></div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if user[4] %}
+                                    <div class="mb-3">
+                                        <small class="text-muted">Email:</small>
+                                        <div>{{ user[4] }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if user[5] %}
+                                    <div class="mb-3">
+                                        <small class="text-muted">Телефон:</small>
+                                        <div>{{ user[5] }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Кнопки действий -->
+                                    <div class="d-flex justify-content-between mt-3">
+                                        <a href="{{ url_for('edit_user', user_id=user[0]) }}" 
+                                           class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i> Редактировать
+                                        </a>
+                                        
+                                        {% if user[0] != session['user_id'] %}
+                                        <form method="POST" action="{{ url_for('delete_user', user_id=user[0]) }}" 
+                                              onsubmit="return confirm('Удалить пользователя {{ user[2] }}?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i> Удалить
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning text-center">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Пользователи не найдены
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Плавающая кнопка "Добавить пользователя" -->
+    <a href="{{ url_for('add_user') }}" 
+       class="btn btn-danger btn-add-floating"
+       id="addButton"
+       title="Добавить нового пользователя">
+        <i class="bi bi-plus" style="line-height: 0;"></i>
+    </a>
+
+    <script>
+        // Логика скрытия кнопки при скролле
+        let lastScrollTop = 0;
+        const addButton = document.getElementById('addButton');
+        const scrollThreshold = 100;
+        
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > scrollThreshold) {
+                addButton.classList.add('hidden');
+            } else {
+                addButton.classList.remove('hidden');
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.pageYOffset > scrollThreshold) {
+                addButton.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

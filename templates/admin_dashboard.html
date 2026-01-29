@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель администратора</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        body { background-color: #f8f9fa; }
+        .stat-card { border-radius: 10px; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        
+        /* ИСПРАВЛЕНИЕ: Активные элементы в красный цвет */
+        .list-group-item.active { 
+            background-color: #dc3545 !important; 
+            color: white !important; 
+            border-color: rgb(63, 74, 228) !important;
+        }
+        
+        /* Исправление для предотвращения переноса */
+        .navbar-nav {
+            flex-wrap: nowrap;
+        }
+        .nav-link {
+            white-space: nowrap;
+        }
+        
+        /* Для мобильных устройств */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            .nav-link {
+                font-size: 0.9rem;
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Дополнительный красный цвет для админки */
+        .sidebar-menu .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        
+        /* Быстрые действия тоже в красный */
+        .quick-actions-card .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div class="d-flex">
+                    <span class="nav-item nav-link text-white" style="white-space: nowrap;">
+                        <i class="bi bi-person-circle"></i> {{ session['full_name'] }}
+                    </span>
+                    <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}" style="white-space: nowrap;">
+                        <i class="bi bi-box-arrow-right"></i> Выход
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню - САЙДБАР -->
+            <div class="col-md-3">
+                <!-- Блок администрирования -->
+                <div class="card mb-4 sidebar-menu">
+                    <div class="card-header bg-danger text-white">
+                        <i class="bi bi-menu-button"></i> Администрирование
+                    </div>
+                    <div class="list-group list-group-flush">
+                    <!-- Текущая страница - активная -->
+                    <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action active">
+                        <i class="bi bi-speedometer2"></i> Панель управления
+                    </a>
+                    
+                    <!-- Управление пользователями -->
+                    <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-people"></i> Пользователи
+                    </a>
+                    
+                    <!-- Управление группами -->
+                    <a href="{{ url_for('admin_groups') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-collection"></i> Группы
+                    </a>
+                    
+                    <!-- Управление расписанием -->
+                    <a href="{{ url_for('admin_schedule') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-calendar-week"></i> Расписание
+                    </a>
+                    
+                    <!-- Статистика системы -->
+                    <a href="{{ url_for('admin_statistics') }}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-bar-chart"></i> Статистика
+                    </a>
+                </div>
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="bi bi-lightning"></i> Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <!-- Добавление пользователя -->
+                        <a href="{{ url_for('add_user') }}" class="btn btn-danger btn-sm w-100 mb-2">
+                            <i class="bi bi-person-plus"></i> Добавить пользователя
+                        </a>
+                        
+                        <!-- Добавление в расписание -->
+                        <a href="{{ url_for('add_schedule') }}" class="btn btn-warning btn-sm w-100 mb-2">
+                            <i class="bi bi-calendar-plus"></i> Добавить в расписание
+                        </a>
+                        
+                        <!-- Просмотр расписания -->
+                        <a href="{{ url_for('admin_schedule') }}" class="btn btn-info btn-sm w-100 mb-2">
+                            <i class="bi bi-eye"></i> Просмотр расписания
+                        </a>
+                        
+                        <!-- НОВАЯ КНОПКА: Просмотр статистики -->
+                        <a href="{{ url_for('admin_statistics') }}" class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-graph-up"></i> Просмотр статистики
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Информация о системе -->
+                <div class="card mt-4">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="bi bi-info-circle"></i> Информация о системе
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <div class="mb-1"><strong>Роль:</strong> Администратор</div>
+                            <div class="mb-1"><strong>Вход:</strong> {{ session['login'] }}</div>
+                            <div><strong>Время:</strong> {{ now.strftime('%H:%M') if now else '' }}</div>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <!-- Заголовок и дата -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-speedometer2"></i> Панель администратора</h3>
+                    <span class="badge bg-danger">{{ today_date.strftime('%d.%m.%Y') }}</span>
+                </div>
+
+                <!-- Карточки статистики -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-4">{{ stats[0] }}</h1>
+                                <p class="mb-0"><i class="bi bi-people"></i> Студентов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-4">{{ stats[1] }}</h1>
+                                <p class="mb-0"><i class="bi bi-person"></i> Преподавателей</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h1 class="display-4">{{ stats[2] }}</h1>
+                                <p class="mb-0"><i class="bi bi-collection"></i> Групп</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card stat-card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h1 class="display-4">{{ stats[3] }}</h1>
+                                <p class="mb-0"><i class="bi bi-book"></i> Дисциплин</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Сегодняшнее расписание -->
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white d-flex justify-content-between">
+                        <h5 class="mb-0"><i class="bi bi-calendar-day"></i> Расписание на сегодня</h5>
+                        <span class="badge bg-light text-dark">{{ today_date.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                    <div class="card-body">
+                        {% if today_schedule %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Время</th>
+                                            <th>Дисциплина</th>
+                                            <th>Группа</th>
+                                            <th>Аудитория</th>
+                                            <th>Преподаватель</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lesson in today_schedule %}
+                                        <tr>
+                                            <td><strong>{{ lesson[2] }}</strong></td>
+                                            <td>{{ lesson[1] }}</td>
+                                            <td><span class="badge bg-primary">{{ lesson[5] }}</span></td>
+                                            <td>{{ lesson[3] }}</td>
+                                            <td>{{ lesson[6] }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> На сегодня занятий нет
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Небольшой скрипт для обновления времени -->
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ru-RU', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            const timeElement = document.querySelector('.card-body small div:last-child');
+            if (timeElement) {
+                timeElement.innerHTML = `<strong>Время:</strong> ${timeString}`;
+            }
+        }
+        
+        // Обновляем время каждую минуту
+        setInterval(updateTime, 60000);
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+        });
+    </script>
+</body>
+</html>

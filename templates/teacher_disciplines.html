@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мои дисциплины</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        /* Основные стили */
+        .btn-add-floating {
+            background-color: #20c997;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-add-floating:hover {
+            background-color: #17a589;
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+        .btn-add-floating.hidden {
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+        
+        /* Стили для карточек дисциплин */
+        .discipline-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Добавляем чтобы кнопки не вылазили */
+        }
+        .discipline-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(25, 135, 84, 0.15);
+            border-color: #198754;
+        }
+        
+        /* Заголовок карточки */
+        .card-header-teacher {
+            background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+            border-bottom: none;
+            border-top-left-radius: 11px !important;
+            border-top-right-radius: 11px !important;
+            padding: 1rem;
+        }
+        
+        /* Тело карточки */
+        .card-body-teacher {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+            overflow: hidden; /* Защита от переполнения */
+        }
+        
+        /* Стили для бейджей групп */
+        .groups-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        
+        /* Стили для блока групп */
+        .groups-container {
+            flex: 1;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden; /* Защита от переполнения */
+        }
+        
+        /* Кнопки действий */
+        .actions-footer {
+            border-top: 1px solid #e9ecef;
+            padding-top: 1rem;
+            margin-top: auto;
+        }
+        
+        .action-btn {
+            border-radius: 8px;
+            padding: 0.5rem 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0; /* Важно для корректного сжатия */
+        }
+        
+        .action-btn i {
+            font-size: 1rem;
+            margin-right: 5px;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Гарантируем что кнопки будут в одну строку */
+        .actions-footer .d-flex {
+            width: 100%;
+            min-width: 0; /* Важно для корректного сжатия */
+        }
+        
+        /* Стили для боковой панели */
+        body { background-color: #f8f9fa; }
+        .sidebar-teacher {
+            border-left: 4px solid #20c997;
+        }
+        .list-group-item.active {
+            background-color: #198754 !important;
+            border-color: #20533c !important;
+        }
+        .quick-actions-card .card-header {
+            background: linear-gradient(135deg, #3c9958 0%, #0d663d 100%);
+        }
+        .quick-actions-card .btn-add-discipline {
+            background-color: #20c997;
+            border-color: #20c997;
+            color: white;
+        }
+        .quick-actions-card .btn-add-discipline:hover {
+            background-color: #17a589;
+            border-color: #148f77;
+        }
+        .quick-actions-card .btn-mark-attendance {
+            background-color: #198754;
+            border-color: #198754;
+            color: white;
+        }
+        .quick-actions-card .btn-mark-attendance:hover {
+            background-color: #157347;
+            border-color: #146c43;
+        }
+        
+        /* Анимация для отсутствующих групп */
+        .no-groups-message {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        /* Адаптивность для кнопок */
+        @media (max-width: 768px) {
+            .action-btn span {
+                display: none;
+            }
+            .action-btn i {
+                margin-right: 0;
+                font-size: 1.1rem; /* Немного увеличим иконки на мобильных */
+            }
+            .action-btn {
+                padding: 0.5rem 0.4rem;
+            }
+        }
+        
+        /* Для очень маленьких экранов */
+        @media (max-width: 576px) {
+            .col-md-6 {
+                padding-left: 6px;
+                padding-right: 6px;
+            }
+            .card-body-teacher {
+                padding: 1rem;
+            }
+        }
+        
+        /* Статистика - равномерное распределение */
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+        
+        .stat-item {
+            flex: 1;
+            padding: 0.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        
+        /* Цвета для статистики */
+        .stat-primary { color: #0d6efd; }
+        .stat-success { color: #198754; }
+        .stat-info { color: #0dcaf0; }
+        
+        @media (max-width: 768px) {
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link text-white">
+                    <i class="bi bi-person-circle"></i> {{ session['full_name'] }}
+                </span>
+                <a class="nav-item nav-link text-white" href="{{ url_for('logout') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левое меню -->
+            <div class="col-md-3">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-menu-button"></i> Меню преподавателя
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-speedometer2"></i> Панель
+                        </a>
+                        <a href="{{ url_for('teacher_disciplines') }}" class="list-group-item list-group-item-action active">
+                            <i class="bi bi-book"></i> Мои дисциплины
+                        </a>
+                        <a href="{{ url_for('mark_attendance') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-clipboard-check"></i> Отметка посещаемости
+                        </a>
+                        <a href="{{ url_for('teacher_statistics') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-bar-chart"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Быстрые действия -->
+                <div class="card quick-actions-card">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-lightning"></i> Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <a href="{{ url_for('add_discipline') }}" class="btn btn-add-discipline btn-sm w-100 mb-2">
+                            <i class="bi bi-plus-circle"></i> Добавить дисциплину
+                        </a>
+                        <a href="{{ url_for('mark_attendance') }}" class="btn btn-mark-attendance btn-sm w-100">
+                            <i class="bi bi-check-circle"></i> Отметить посещаемость
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9">
+                <h2><i class="bi bi-book"></i> Мои дисциплины</h2>
+                <p class="text-muted">Управление дисциплинами, которые вы преподаёте</p>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% if disciplines %}
+                    <div class="row">
+                        {% for disc in disciplines %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card discipline-card h-100">
+                                <!-- Заголовок карточки -->
+                                <div class="card-header card-header-teacher text-white">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h5 class="mb-0 text-truncate" title="{{ disc[1] }}">
+                                            {{ disc[1] }}
+                                        </h5>
+                                        <span class="badge bg-light text-dark ms-2">
+                                            {{ disc[2] }} ч.
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Тело карточки -->
+                                <div class="card-body card-body-teacher">
+                                    <!-- Количество групп -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">Назначено групп:</small>
+                                            <span class="badge bg-info groups-badge">
+                                                {{ disc[4] if disc|length > 4 else 0 }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Список групп -->
+                                    <div class="groups-container mb-3">
+                                        {% if disc[3] and disc[3] != 'Нет групп' %}
+                                            {% set groups = disc[3].split(', ') %}
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for group in groups[:3] %}
+                                                    <span class="badge bg-secondary groups-badge" 
+                                                          title="Группа {{ group }}">
+                                                        {{ group }}
+                                                    </span>
+                                                {% endfor %}
+                                                {% if groups|length > 3 %}
+                                                    <span class="badge bg-light text-dark border groups-badge" 
+                                                          title="Ещё {{ groups|length - 3 }} групп">
+                                                        +{{ groups|length - 3 }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="text-center py-3 no-groups-message">
+                                                <i class="bi bi-people display-6 text-muted mb-2 d-block"></i>
+                                                <span class="text-muted">Группы не назначены</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Кнопки действий -->
+                                    <div class="actions-footer">
+                                        <div class="d-flex gap-1" style="min-width: 0;"> <!-- Добавляем min-width: 0 -->
+                                            <!-- Кнопка управления группами -->
+                                            <a href="{{ url_for('manage_discipline_groups', discipline_id=disc[0]) }}" 
+                                               class="btn btn-primary action-btn"
+                                               title="Управление группами">
+                                                <i class="bi bi-people"></i>
+                                                <span class="d-none d-md-inline">Группы</span>
+                                            </a>
+                                            
+                                            <!-- Кнопка редактирования -->
+                                            <button class="btn btn-warning action-btn" 
+                                                    onclick="editDiscipline({{ disc[0] }})"
+                                                    title="Редактировать дисциплину">
+                                                <i class="bi bi-pencil"></i>
+                                                <span class="d-none d-md-inline">Изменить</span>
+                                            </button>
+                                            
+                                            <!-- Кнопка удаления -->
+                                            <button class="btn btn-danger action-btn" 
+                                                    onclick="confirmDelete({{ disc[0] }}, '{{ disc[1] }}')"
+                                                    title="Удалить дисциплину">
+                                                <i class="bi bi-trash"></i>
+                                                <span class="d-none d-md-inline">Удалить</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Статистика -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <i class="bi bi-graph-up"></i> Статистика дисциплин
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-row">
+                                <div class="stat-item">
+                                    <div class="stat-number stat-primary">{{ disciplines|length }}</div>
+                                    <div class="stat-label">Всего дисциплин</div>
+                                </div>
+                                
+                                <div class="stat-item">
+                                    {% set total_hours = disciplines|sum(attribute='2') %}
+                                    <div class="stat-number stat-success">{{ total_hours }}</div>
+                                    <div class="stat-label">Часов всего</div>
+                                </div>
+                                
+                                <div class="stat-item">
+                                    {% set total_groups = disciplines|sum(attribute='4') if disciplines[0]|length > 4 else 0 %}
+                                    <div class="stat-number stat-info">{{ total_groups }}</div>
+                                    <div class="stat-label">Назначений групп</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-book display-1 text-muted mb-4"></i>
+                        <h3 class="text-muted mb-3">У вас пока нет дисциплин</h3>
+                        <p class="text-muted mb-4">Добавьте первую дисциплину, чтобы начать работу</p>
+                        <a href="{{ url_for('add_discipline') }}" class="btn btn-success btn-lg">
+                            <i class="bi bi-plus-circle"></i> Добавить первую дисциплину
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Плавающая кнопка "Добавить дисциплину" -->
+    <a href="{{ url_for('add_discipline') }}" 
+       class="btn btn-success btn-add-floating"
+       id="addButton"
+       title="Добавить новую дисциплину">
+        <i class="bi bi-plus" style="line-height: 0;"></i>
+    </a>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Редактирование дисциплины
+        function editDiscipline(disciplineId) {
+            window.location.href = `/teacher/discipline/edit/${disciplineId}`;
+        }
+        
+        // Удаление дисциплины
+        function confirmDelete(disciplineId, disciplineName) {
+            if (confirm(`Вы уверены, что хотите удалить дисциплину "${disciplineName}"?\n\n⚠️ Внимание: Это действие удалит:\n• Все связанные занятия в расписании\n• Все записи о посещаемости\n• Назначения групп\n\nДействие нельзя отменить!`)) {
+                // Создаем скрытую форму для удаления
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/teacher/discipline/delete/${disciplineId}`;
+                
+                // Добавляем CSRF токен если есть
+                const csrfToken = document.querySelector('input[name="csrf_token"]');
+                if (csrfToken) {
+                    form.appendChild(csrfToken.cloneNode(true));
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        // Логика скрытия плавающей кнопки при скролле
+        let lastScrollTop = 0;
+        const addButton = document.getElementById('addButton');
+        const scrollThreshold = 100;
+        
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > scrollThreshold) {
+                addButton.classList.add('hidden');
+            } else {
+                addButton.classList.remove('hidden');
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.pageYOffset > scrollThreshold) {
+                addButton.classList.add('hidden');
+            }
+            
+            // Добавляем анимацию при наведении на карточки
+            const cards = document.querySelectorAll('.discipline-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.zIndex = '100';
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.style.zIndex = '1';
+                });
+            });
+            
+            // Показываем тултипы на мобильных устройствах
+            if (window.innerWidth < 768) {
+                const actionButtons = document.querySelectorAll('.action-btn');
+                actionButtons.forEach(button => {
+                    button.setAttribute('data-bs-toggle', 'tooltip');
+                    button.setAttribute('data-bs-placement', 'top');
+                });
+                
+                // Инициализация тултипов Bootstrap
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl, {
+                        trigger: 'hover'
+                    });
+                });
+            }
+            
+            // Проверяем ширину кнопок и при необходимости скрываем текст
+            function checkButtonWidth() {
+                const buttons = document.querySelectorAll('.action-btn');
+                buttons.forEach(button => {
+                    const parentWidth = button.parentElement.offsetWidth;
+                    const buttonWidth = button.offsetWidth;
+                    
+                    // Если кнопки переполняют контейнер, скрываем текст
+                    if (parentWidth < 250) { // Примерный порог
+                        const textSpan = button.querySelector('span');
+                        if (textSpan) {
+                            textSpan.style.display = 'none';
+                        }
+                    }
+                });
+            }
+            
+            // Проверяем при загрузке и при изменении размера окна
+            checkButtonWidth();
+            window.addEventListener('resize', checkButtonWidth);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Дисциплины группы {{ group_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ url_for('static', filename='favic.ico') }}">
+    <style>
+        .btn-back {
+            background-color: #dc3545;
+            color: white;
+            border: 2px solid #dc3545;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .btn-back:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+            transform: scale(1.05);
+        }
+        .discipline-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #dc3545;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+        .discipline-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.15);
+            border-left: 4px solid #ff6b6b;
+        }
+        .hours-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        .semester-badge {
+            background: linear-gradient(135deg, #20c997 0%, #17a589 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-danger shadow">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-mortarboard"></i> Учёт посещаемости
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a href="{{ url_for('admin_groups') }}" class="btn btn-back">
+                    <i class="bi bi-arrow-left-circle"></i> Назад к группам
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="bi bi-book"></i> Дисциплины группы {{ group_name }}</h2>
+                <p class="text-muted">Список всех дисциплин, которые изучает группа</p>
+                
+                {% if disciplines %}
+                    <div class="row">
+                        {% for disc in disciplines %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card discipline-card h-100 position-relative">
+                                <div class="card-header bg-danger text-white">
+                                    <h5 class="mb-0">{{ disc[1] }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Бейдж с часами в правом верхнем углу -->
+                                    <span class="badge hours-badge">{{ disc[3] }} ч.</span>
+                                    
+                                    <!-- Информация о дисциплине -->
+                                    {% if disc[2] %}
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block">Описание:</small>
+                                        <div class="mt-1">
+                                            {{ disc[2]|truncate(100) }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block">Преподаватель:</small>
+                                        <div class="mt-1">
+                                            <i class="bi bi-person"></i> {{ disc[4] }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block">Семестр:</small>
+                                        <div class="mt-1">
+                                            <span class="badge semester-badge">{{ disc[5] }} семестр</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Статистика -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-secondary text-white">
+                            <i class="bi bi-graph-up"></i> Статистика по дисциплинам
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-6 mb-3">
+                                    <div class="display-6 text-primary">{{ disciplines|length }}</div>
+                                    <div class="text-muted">Всего дисциплин</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {% set total_hours = disciplines|sum(attribute='3') %}
+                                    <div class="display-6 text-success">{{ total_hours }}</div>
+                                    <div class="text-muted">Часов всего</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle me-3" style="font-size: 2rem;"></i>
+                            <div>
+                                <h5 class="mb-1">Дисциплины не найдены</h5>
+                                <p class="mb-0">Для этой группы пока не назначено ни одной дисциплины.</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
